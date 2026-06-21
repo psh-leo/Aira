@@ -28,7 +28,7 @@ Setiap ADR tidak pernah dihapus. Jika sebuah keputusan berubah, ADR lama diberi 
 ### Python sebagai Bahasa Utama
 
 **Status:** Accepted
-**Tanggal:** 2025
+**Tanggal:** 2026
 **Versi:** v0.1
 
 ---
@@ -78,7 +78,7 @@ Selain itu, Python mendukung gradual typing melalui `typing` module. Ini artinya
 ### Protocol sebagai Mekanisme Abstraction Layer
 
 **Status:** Accepted
-**Tanggal:** 2025
+**Tanggal:** 2026
 **Versi:** v0.1
 
 ---
@@ -149,7 +149,7 @@ class OllamaProvider:
 ### Orchestrator sebagai Satu Titik Kontrol Pipeline
 
 **Status:** Accepted
-**Tanggal:** 2025
+**Tanggal:** 2026
 **Versi:** v0.1
 
 ---
@@ -200,7 +200,7 @@ Pola ini dikenal sebagai Mediator Pattern — sebuah pola klasik yang dirancang 
 ### ContextManager sebagai Komponen Independen
 
 **Status:** Accepted
-**Tanggal:** 2025
+**Tanggal:** 2026
 **Versi:** v0.1
 
 ---
@@ -269,7 +269,7 @@ Biaya memisahkan `ContextManager` sekarang adalah nol — hanya menambah satu fi
 ### pyttsx3 sebagai TTS Placeholder di v0.1
 
 **Status:** Accepted — akan di-supersede oleh ADR-008 di v0.2
-**Tanggal:** 2025
+**Tanggal:** 2026
 **Versi:** v0.1
 
 ---
@@ -333,7 +333,7 @@ Keputusan ini direncanakan dan bukan kompromis permanen. Abstraction layer TTS s
 ### Whisper Tiny sebagai STT di v0.1
 
 **Status:** Accepted
-**Tanggal:** 2025
+**Tanggal:** 2026
 **Versi:** v0.1
 
 ---
@@ -388,7 +388,7 @@ Pada RAM 4GB dengan Ollama sudah menggunakan ~1GB, `tiny` adalah pilihan yang pa
 ### Ollama + Gemma 3 1B sebagai LLM di v0.1
 
 **Status:** Accepted
-**Tanggal:** 2025
+**Tanggal:** 2026
 **Versi:** v0.1
 
 ---
@@ -448,4 +448,4 @@ Model 1B memiliki keterbatasan dibanding model yang lebih besar (7B, 13B, dan se
 *Dokumen ini diperbarui setiap kali ada keputusan arsitektur baru.*
 *ADR tidak pernah dihapus — hanya status-nya yang bisa berubah.*
 
-*Last updated: 2025 | v0.1*
+*Last updated: 2026 | v0.1*
