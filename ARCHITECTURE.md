@@ -460,4 +460,4 @@ Terlepas dari versi mana yang sedang dikembangkan:
 
 *Dokumen ini adalah living document. Diagram dan struktur folder akan diperbarui setiap kali ada keputusan arsitektur yang signifikan.*
 
-*Last updated: 2025 | Version: 1.0.0*
+*Last updated: 2026 | Version: 1.0.0*
