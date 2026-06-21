@@ -113,4 +113,4 @@ Dokumen ini ditulis untuk:
 
 *Dokumen ini adalah living document. Kontennya bisa berkembang, tapi filosofi intinya tidak.*
 
-*Last updated: 2025 | Version: 1.0.0*
+*Last updated: 2026 | Version: 1.0.0*
