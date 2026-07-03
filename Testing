@@ -1,0 +1,204 @@
+# TESTING — Project Aira
+
+> *"Kode yang tidak bisa ditest adalah kode yang tidak bisa dipercaya."*
+
+---
+
+## Filosofi Testing
+
+Aira dibangun dengan arsitektur yang memudahkan testing. Setiap komponen memiliki satu tanggung jawab dan berkomunikasi melalui interface — ini berarti setiap komponen bisa ditest secara independen tanpa harus menjalankan Ollama, Whisper, atau hardware apapun.
+
+**Prinsip utama:**
+- Unit test tidak boleh membutuhkan service eksternal (Ollama, mikrofon, speaker)
+- Gunakan mock/stub untuk mengisolasi komponen yang ditest
+- Test behavior, bukan implementation detail
+- Test yang lambat lebih baik dari tidak ada test — tapi test yang cepat lebih baik dari keduanya
+
+---
+
+## Struktur Test
+
+```
+tests/
+├── conftest.py                      # Shared fixtures
+├── test_orchestrator.py             # Unit test Orchestrator
+├── test_context_manager.py          # Unit test ContextManager
+└── providers/
+    ├── test_ollama_provider.py      # Unit test OllamaProvider (dengan mock HTTP)
+    ├── test_whisper_provider.py     # Unit test WhisperProvider (dengan mock model)
+    └── test_pyttsx3_provider.py     # Unit test Pyttsx3Provider (dengan mock engine)
+```
+
+---
+
+## Menjalankan Tests
+
+```bash
+# Semua test
+pytest
+
+# Dengan output verbose
+pytest -v
+
+# Dengan coverage report
+pytest --cov=aira --cov-report=term-missing
+
+# Satu file spesifik
+pytest tests/test_context_manager.py -v
+
+# Satu test spesifik
+pytest tests/test_context_manager.py::test_add_turn -v
+```
+
+---
+
+## Target Coverage
+
+| Modul | Target Coverage |
+|---|---|
+| `core/` | ≥ 90% |
+| `interfaces/` | 100% (Protocol definitions) |
+| `providers/` | ≥ 70% |
+| `pipeline/` | ≥ 60% |
+| `config/` | ≥ 80% |
+
+Provider coverage lebih rendah karena beberapa path membutuhkan hardware atau service eksternal yang tidak bisa di-mock sepenuhnya.
+
+---
+
+## Contoh Test
+
+### ContextManager
+
+```python
+# tests/test_context_manager.py
+from aira.core.context_manager import ContextManager
+from aira.config.settings import ContextConfig
+
+
+def test_add_turn_stores_messages():
+    """add_turn harus menyimpan user dan assistant message."""
+    cm = ContextManager(ContextConfig())
+    cm.add_turn(user="halo", assistant="halo Pasha")
+
+    messages = cm.get_messages()
+    assert len(messages) == 2
+    assert messages[0] == {"role": "user", "content": "halo"}
+    assert messages[1] == {"role": "assistant", "content": "halo Pasha"}
+
+
+def test_get_messages_respects_max_limit():
+    """get_messages tidak boleh mengembalikan lebih dari max_messages."""
+    cm = ContextManager(ContextConfig(max_messages=4))
+
+    # Tambah 5 giliran (10 pesan)
+    for i in range(5):
+        cm.add_turn(user=f"pesan {i}", assistant=f"balasan {i}")
+
+    messages = cm.get_messages(max_messages=4)
+    assert len(messages) == 4
+
+
+def test_clear_resets_history():
+    """clear() harus menghapus semua history."""
+    cm = ContextManager(ContextConfig())
+    cm.add_turn(user="halo", assistant="halo")
+    cm.clear()
+
+    assert cm.is_empty()
+    assert cm.get_messages() == []
+```
+
+### Orchestrator (dengan mock)
+
+```python
+# tests/test_orchestrator.py
+from unittest.mock import MagicMock, patch
+from aira.core.orchestrator import Orchestrator
+from aira.core.context_manager import ContextManager
+from aira.config.settings import AiraConfig, ContextConfig
+
+
+def make_orchestrator():
+    """Factory untuk membuat Orchestrator dengan semua dependency di-mock."""
+    mock_stt = MagicMock()
+    mock_stt.transcribe.return_value = "halo Aira"
+
+    mock_llm = MagicMock()
+    mock_llm.generate.return_value = "halo Pasha"
+
+    mock_tts = MagicMock()
+
+    context = ContextManager(ContextConfig())
+
+    return Orchestrator(
+        stt=mock_stt,
+        llm=mock_llm,
+        tts=mock_tts,
+        context=context,
+        master_prompt="Kamu adalah Aira.",
+        config=AiraConfig(),
+    ), mock_stt, mock_llm, mock_tts
+
+
+def test_process_turn_calls_components_in_order():
+    """process_turn harus memanggil STT, LLM, dan TTS secara berurutan."""
+    orchestrator, mock_stt, mock_llm, mock_tts = make_orchestrator()
+
+    orchestrator.process_turn("path/to/audio.wav")
+
+    mock_stt.transcribe.assert_called_once_with("path/to/audio.wav")
+    mock_llm.generate.assert_called_once()
+    mock_tts.speak.assert_called_once_with("halo Pasha")
+
+
+def test_process_turn_saves_to_context():
+    """process_turn harus menyimpan giliran ke ContextManager."""
+    orchestrator, _, _, _ = make_orchestrator()
+
+    orchestrator.process_turn("path/to/audio.wav")
+
+    messages = orchestrator._context.get_messages()
+    assert any(m["role"] == "user" for m in messages)
+    assert any(m["role"] == "assistant" for m in messages)
+```
+
+---
+
+## Menulis Test yang Baik
+
+### DO
+
+```python
+# ✅ Test satu behavior per test function
+def test_context_manager_clear_resets_state():
+    ...
+
+# ✅ Nama test yang mendeskripsikan behavior
+def test_ollama_provider_raises_on_connection_error():
+    ...
+
+# ✅ Gunakan mock untuk isolasi
+mock_llm = MagicMock()
+mock_llm.generate.return_value = "respons test"
+```
+
+### DON'T
+
+```python
+# ❌ Jangan test multiple behavior dalam satu test
+def test_context_manager():  # terlalu umum
+    cm.add_turn(...)
+    cm.clear(...)
+    cm.get_messages(...)
+    # apa yang sebenarnya ditest?
+
+# ❌ Jangan bergantung pada service eksternal di unit test
+def test_ollama_generates_response():
+    provider = OllamaProvider(...)
+    result = provider.generate(...)  # ini akan fail jika Ollama tidak berjalan
+```
+
+---
+
+*Last updated: 2026 | Version: 1.0.0*
