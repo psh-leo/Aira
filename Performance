@@ -1,0 +1,133 @@
+# PERFORMANCE — Project Aira
+
+> *"Optimasi prematur adalah akar dari segala kejahatan. Tapi mengabaikan constraint hardware adalah akar dari segala frustrasi."*
+
+---
+
+## Konteks Hardware
+
+Aira dirancang untuk berjalan di perangkat dengan spesifikasi:
+
+```
+CPU  : Intel Core i3
+RAM  : 4GB
+GPU  : Tidak ada (CPU-only inference)
+OS   : Windows 11
+```
+
+Setiap keputusan performa di dokumen ini mempertimbangkan constraint ini.
+
+---
+
+## Profil Performa v0.1
+
+### Estimasi Latency per Komponen
+
+| Komponen | Estimasi Latency | Catatan |
+|---|---|---|
+| Audio capture (5 detik) | 5.0s | Fixed duration recording |
+| Whisper transcription | 3–8s | Bergantung panjang audio |
+| Ollama generation | 10–30s | Bergantung panjang respons, ~10-20 tok/s |
+| pyttsx3 TTS | 0.1–0.5s | Sangat cepat, OS-native |
+| **Total per turn** | **~18–43s** | End-to-end |
+
+Latency ini adalah trade-off yang diterima di v0.1. Prioritasnya adalah arsitektur yang benar, bukan kecepatan.
+
+### Profil RAM
+
+```
+Komponen               Estimasi RAM      Kapan ter-load
+──────────────────────────────────────────────────────
+OS + background        ~1.2GB            Selalu
+Python runtime         ~50MB             Saat startup
+Whisper tiny           ~390MB            Saat startup, stay loaded
+Ollama Gemma 3 1B      ~800MB–1GB        Saat startup Ollama service
+pyttsx3                ~5MB              Saat startup
+──────────────────────────────────────────────────────
+Total estimasi         ~2.4–2.6GB
+Tersisa (dari 4GB)     ~1.4–1.6GB        Buffer untuk operasi
+```
+
+---
+
+## Strategi Optimasi yang Sudah Diterapkan
+
+### Model Loading Sekali Saat Startup
+
+Whisper di-load sekali di `__init__` dan disimpan di memory selama aplikasi berjalan. Loading ulang per request akan menambah 2–3 detik latensi per turn.
+
+```python
+class WhisperProvider:
+    def __init__(self, config: WhisperConfig):
+        # Load sekali — simpan di self.model
+        self.model = whisper.load_model(config.model_name)
+
+    def transcribe(self, audio_path: str) -> str:
+        # Gunakan model yang sudah ter-load
+        return self.model.transcribe(audio_path)["text"].strip()
+```
+
+### CPU-only PyTorch
+
+Install PyTorch versi CPU menghindari loading CUDA runtime yang tidak diperlukan — menghemat ~500MB RAM dan mengurangi startup time.
+
+### Sliding Window Context
+
+ContextManager membatasi jumlah pesan yang dikirim ke LLM (default: 20 pesan terakhir). Ini menjaga prompt length tetap manageable dan mencegah Ollama timeout karena context terlalu panjang.
+
+### Stream: False
+
+Ollama di-set ke non-streaming mode di v0.1. Ini menyederhanakan kode dan menghindari partial response yang tidak bisa langsung di-speak oleh TTS.
+
+---
+
+## Optimasi yang Direncanakan
+
+### v0.2 — Setelah Kokoro Ditambahkan
+
+Dengan tiga model berjalan bersamaan (Whisper + Ollama + Kokoro), RAM management menjadi lebih kritis. Strategi yang akan dievaluasi:
+
+**Lazy unloading:** Unload Whisper model setelah transkripsi selesai dan sebelum LLM generation dimulai, lalu load kembali untuk turn berikutnya. Trade-off: menambah ~2–3 detik latensi per turn tapi menghemat ~390MB RAM.
+
+```python
+# Pattern lazy unloading (kandidat untuk v0.2)
+def transcribe(self, audio_path: str) -> str:
+    self._ensure_model_loaded()
+    result = self.model.transcribe(audio_path)
+    self._unload_model()  # Bebaskan RAM sebelum LLM generate
+    return result["text"].strip()
+```
+
+### v0.3 — Context Compression
+
+Ketika long-term memory ditambahkan, context yang dikirim ke LLM bisa menjadi sangat panjang. Strategi yang akan dievaluasi:
+
+- Summarization: ringkas conversation lama menjadi paragraf pendek
+- Semantic retrieval: hanya kirim memory yang relevan dengan topik saat ini
+
+### v1.0 — Profiling Lengkap
+
+Sebelum v1.0, lakukan profiling menyeluruh menggunakan `cProfile` dan `memory_profiler` untuk mengidentifikasi bottleneck aktual (bukan asumsi).
+
+```bash
+# Profiling CPU
+python -m cProfile -o profile.out main.py
+
+# Profiling memory
+pip install memory-profiler
+python -m memory_profiler main.py
+```
+
+---
+
+## Aturan Optimasi
+
+**Jangan optimasi sebelum ada data.** Semua estimasi di dokumen ini adalah perkiraan. Angka aktual bisa berbeda signifikan. Ukur dulu, optimasi kemudian.
+
+**Jangan korbankan readability untuk performa.** Kode yang sulit dibaca tidak bisa di-maintain. Di perangkat dengan constraint ini, latency 5 detik vs 3 detik jarang menjadi dealbreaker — tapi kode yang tidak bisa dipahami selalu menjadi masalah.
+
+**Dokumentasikan setiap optimasi.** Jika ada kode yang terlihat tidak intuitif karena alasan performa, tambahkan komentar yang menjelaskan mengapa.
+
+---
+
+*Last updated: 2025 | Version: 1.0.0*
