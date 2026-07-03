@@ -1,0 +1,63 @@
+# SECURITY — Project Aira
+
+---
+
+## Postur Keamanan Aira v0.1
+
+Aira v0.1 adalah aplikasi desktop yang berjalan sepenuhnya lokal. Ini secara fundamental mempengaruhi threat model-nya — tidak ada server, tidak ada koneksi internet, tidak ada data yang meninggalkan mesin.
+
+---
+
+## Apa yang Aman di v0.1
+
+**Privasi percakapan** — Semua percakapan dengan Aira tetap di mesin lokal. Tidak ada transcript yang dikirim ke server manapun.
+
+**Privasi audio** — Audio dari mikrofon diproses lokal oleh Whisper. Tidak ada audio yang dikirim ke cloud.
+
+**Tidak ada API key** — Aira v0.1 tidak membutuhkan API key apapun. Tidak ada credential yang perlu disimpan.
+
+**Tidak ada network call keluar** — Satu-satunya network call adalah ke `localhost:11434` (Ollama). Ini adalah loopback address — tidak meninggalkan mesin.
+
+---
+
+## Potensi Risiko
+
+### Prompt Injection via Voice
+
+**Risiko:** Seseorang bisa berbicara instruksi ke mikrofon yang mencoba mengubah perilaku Aira.
+
+**Mitigasi saat ini:** MASTER_PROMPT mendefinisikan identitas Aira yang stabil. Instruksi dalam percakapan tidak bisa menggantikan system prompt.
+
+**Status:** Low risk di v0.1 karena Aira belum memiliki kemampuan untuk mengeksekusi tindakan di sistem.
+
+### Akses File Audio Temporary
+
+**Risiko:** File audio temporary yang dibuat saat recording bisa diakses oleh proses lain.
+
+**Mitigasi:** File temporary dihapus segera setelah transkripsi selesai. Disimpan di folder `temp/` yang ada di direktori aplikasi, bukan di temp sistem.
+
+### Ollama sebagai Attack Surface
+
+**Risiko:** Ollama berjalan di `localhost:11434`. Aplikasi lain di mesin yang sama bisa mengakses endpoint ini.
+
+**Mitigasi saat ini:** Ini adalah batasan Ollama, bukan Aira. Di v0.1, risiko ini diterima karena Aira belum mengirim data sensitif ke Ollama selain teks percakapan.
+
+---
+
+## Melaporkan Kerentanan
+
+Jika menemukan kerentanan keamanan, jangan buat Issue publik. Hubungi langsung melalui email yang tercantum di profil GitHub.
+
+---
+
+## Roadmap Keamanan
+
+Pertimbangan keamanan akan meningkat seiring Aira mendapatkan kemampuan baru:
+
+- **v0.5 (Tool Use):** Setiap tindakan yang mengubah sistem membutuhkan konfirmasi eksplisit
+- **v1.0:** Audit keamanan lengkap sebelum rilis publik
+- **v2.0 (Agent):** Sandboxing untuk eksekusi kode dan akses file
+
+---
+
+*Last updated: 2025 | Version: 1.0.0*
