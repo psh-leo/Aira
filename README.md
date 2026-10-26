@@ -1,5 +1,11 @@
 # Aira — Desktop AI Companion
 
+> [!IMPORTANT]
+> **Project status: Concept and planning**
+>
+> Aira is currently a documented concept and early-stage system design project.
+> The application and features described in this repository have not yet been implemented.
+> Current work focuses on requirements, architecture, technical decisions, and development planning.
 > *Bukan asisten. Bukan chatbot. Partner berpikir yang selalu hadir.*
 
 ---
