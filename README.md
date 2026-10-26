@@ -16,15 +16,25 @@ Ia mendengar suaramu, berpikir, dan berbicara kembali. Tapi Aira bukan sekadar v
 
 ---
 
-## Status Proyek
+## Project Status
 
-```
-v0.1 — Fondasi         🔄 In Development
-v0.2 — Identitas Suara 📋 Planned
-v0.3 — Ingatan         📋 Planned
-v0.4 — Kesadaran       📋 Planned
-v0.5 — Tindakan        📋 Planned
-v1.0 — Produk          📋 Planned
+**Current phase:** Concept and planning
+
+Completed so far:
+
+- Initial project vision
+- Proposed system architecture
+- Technical documentation
+- Development roadmap
+- Early interface and component planning
+
+Not yet implemented:
+
+- Desktop application
+- Voice input and output
+- Local LLM integration
+- Conversation memory
+- Automated actions
 ```
 
 ---
